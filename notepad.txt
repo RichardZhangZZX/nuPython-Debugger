@@ -1,0 +1,137 @@
+test 10
+
+h     
+ss
+sm
+lb
+cb 
+rb 88
+b -1
+b 137
+b 0   !
+b 51  !
+lb
+p e
+r     !
+p 3
+p var1
+cb     <--- ERROR: shouldn't change: 
+w      <--- ERROR
+ss
+sm
+b 97
+b 98   
+rb 97
+rb 98   
+b 88     ! Error. After cleaning breakpoint, should keep running?
+p b2_1
+r         ERROR: Printed unnecessary info
+p b2_1
+w
+ss
+sm
+cb
+b 128
+lb
+cb
+b 126
+p b5_8
+r
+w
+p b5_8
+ss
+cb
+b 136
+lb
+sm
+q
+
+
+
+test 8
+
+b 4
+p x
+r
+p x
+w
+cb
+b 10
+p y
+r
+p a_string_var
+w
+cb
+b 14
+p mytrue
+r
+p apple
+w
+cb
+b 15   !
+r      ERROR
+p x
+w
+cb
+b 22
+r
+p x
+p a_string_var
+w
+ss
+sm
+r
+w
+ss
+q
+
+
+
+test 9:
+b 23
+lb
+cb
+rb 23
+b 14    !
+lb
+r       !
+p pear
+w
+ss
+cb      !
+b 22    
+lb
+rb 22   
+b 18    ! ERROR: Breakpoint not working: Possible cause: setting TemptCur more than once? ClearB skipped lines?
+lb
+cb      ! 
+b 19    ! 
+lb
+r       ! 
+p y     ! 
+w       ! ERROR Show that it is complete when it is not
+ss      ! ERROR Show that it is complete when it is not
+cb
+b 22
+sm
+q
+
+
+
+
+b 9
+r
+11
+lb
+w
+cb
+b 14
+r
+
+b 7
+r
+11
+sm
+cb
+b 12
+r
