@@ -18,7 +18,7 @@ using namespace std;
 // Constructor
 //
 Debugger::Debugger(struct STMT* program)
-  : Program(program), State("Loaded"), Memory(ram_init()), Breakpoint(0), 
+  : Program(program), State("Loaded"), Memory(ram_init()), 
   Prev(nullptr), Cur(nullptr), TemptCur(nullptr), ClearRun(false), BreakpointSet(false)
 {}
 
@@ -313,6 +313,7 @@ void Debugger::where()
   { // State == "running"
     cout << "line " << this->Breakpoint << endl; 
   }
+  //TODO: How to implement: programgraph_print(this->Cur);  
 }
 
 
@@ -325,8 +326,8 @@ void Debugger::run()
 
   while (true)
   {
-    cout << "Enter a command, type h for help. Type r to run. > "; 
-
+    cout << endl;
+    cout << "Enter a command, type h for help. Type r to run. > " << endl; 
     cin >> cmd; 
 
     if (cmd == "q")
@@ -336,6 +337,7 @@ void Debugger::run()
     {
       cout << "Available commands:" << endl;
       cout << "r -> Run the program / continue from a breakpoint" << endl;
+      cout << "s -> Step to next stmt by executing current stmt" << endl; 
       cout << "b n -> Breakpoint at line n" << endl;
       cout << "rb n -> Remove breakpoint at line n" << endl;
       cout << "lb -> List all breakpoints" << endl;

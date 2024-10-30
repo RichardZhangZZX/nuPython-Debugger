@@ -23,7 +23,7 @@ private:
   struct STMT* Program;
   string State;
   struct RAM* Memory; 
-  int Breakpoint;
+  vector<int> Breakpoints;
   struct STMT* Prev; 
   struct STMT* Cur;
   struct STMT* TemptCur;  
