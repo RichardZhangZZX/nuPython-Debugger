@@ -1,4 +1,4 @@
-/*debugger.h*/
+th/*debugger.h*/
 
 //
 // Debugger for nuPython
@@ -10,6 +10,8 @@
 
 #pragma once
 
+#include <algorithm>
+#include <vector>
 #include "programgraph.h"
 #include "execute.h"
 #include "ram.h"
@@ -28,7 +30,6 @@ private:
   struct STMT* Cur;
   struct STMT* TemptCur;  
   bool ClearRun;
-  bool BreakpointSet; 
 
 public:
   // 

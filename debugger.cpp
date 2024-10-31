@@ -19,7 +19,7 @@ using namespace std;
 //
 Debugger::Debugger(struct STMT* program)
   : Program(program), State("Loaded"), Memory(ram_init()), 
-  Prev(nullptr), Cur(nullptr), TemptCur(nullptr), ClearRun(false), BreakpointSet(false)
+  Prev(nullptr), Cur(nullptr), TemptCur(nullptr), ClearRun(false)
 {}
 
 
@@ -32,6 +32,40 @@ Debugger::~Debugger()
 }
 
 
+/*
+breakProgram()
+{
+  if (!traverseProgram(this->Program, line))
+    cout << "no such line" << endl;
+  else
+  {
+    if (this->Prev != nullptr) 
+    {
+      if (this->Prev->stmt_type == STMT_ASSIGNMENT)
+        this->Prev->types.assignment->next_stmt = nullptr;  
+      else if (this->Prev->stmt_type == STMT_FUNCTION_CALL) 
+        this->Prev->types.function_call->next_stmt = nullptr;  
+      else if (this->Prev->stmt_type == STMT_WHILE_LOOP) 
+        this->Prev->types.while_loop->next_stmt = nullptr;  
+      else if (this->Prev->stmt_type == STMT_PASS)
+        this->Prev->types.pass->next_stmt = nullptr;  
+      else
+      {            
+        cout << "Unknown statement type. Cannot set breakpoint." << endl;
+        return;
+      }
+      this->Breakpoints.push_back(line); 
+    } 
+    else 
+    { // TODO: Implement edge case when breakpoint is 1
+      cout << "Cannot set a breakpoint at the start of the program" << endl;
+    }
+  }
+}
+*/
+
+
+
 // 
 // showState()
 // Show the current state of the debugger
@@ -42,7 +76,7 @@ void Debugger::showState()
 }
 
 
-//
+// OLD RUN PROGRAM, NEED TO BE DISCARDED
 // runProgram()
 // Function for running the program
 // 
@@ -62,8 +96,7 @@ void Debugger::runProgram()
     cout << "program has completed" << endl;
     repairGraph();
   }
-  // TODO: Figure out the differences between this two cases
-  else if (this->State == "Running" && this->ClearRun && this->BreakpointSet)
+  else if (this->State == "Running" && this->ClearRun && !this->Breakpoints.empty())
   { // Special case, clear and set new, this will run to the end of the program
     execution = execute(this->TemptCur, this->Memory); 
     ClearRun = false;
@@ -74,7 +107,6 @@ void Debugger::runProgram()
     execution = execute(this->Cur, this->Memory);
     this->State = "Completed";
   }
-
 
   // Check if breakpoint is reached by checking if the line number
   // of the last execution statment is the same as the line number of Prev. 
@@ -98,6 +130,10 @@ void Debugger::runProgram()
   this->State = "Completed";
 }
 
+
+//
+// runProgram()
+// Function 
 
 
 // 
@@ -165,8 +201,6 @@ bool Debugger::traverseProgram(STMT* head, int lineNumber)
       cur = cur->types.assignment->next_stmt;
     else if (cur->stmt_type == STMT_FUNCTION_CALL)
       cur = cur->types.function_call->next_stmt;
-    // else if (cur->stmt_type == STMT_IF_THEN_ELSE)
-    // Don't need to worry about this case now for project 3
     else if (cur->stmt_type == STMT_WHILE_LOOP)
       cur = cur->types.while_loop->next_stmt;
     else if (cur->stmt_type == STMT_PASS)
@@ -210,41 +244,23 @@ void Debugger::setBreakpoint()
   // Warning: this gets into an infinite loop when the input is not an integer
   int line = -1;
   cin >> line; 
-  if (line == this->Breakpoint && this->BreakpointSet == true)
+
+  // If breakpoint already exist, output the message, else set breakpoint 
+  // but don't break the function. Also check if the line exist
+  if (find(this->Breakpoints.begin(), this->Breakpoints.end(), line) != this->Breakpoints.end())
     cout << "breakpoint already set" << endl;
   else
   {
-    // TODO: If no such line, else set breakpoint...
     if (!traverseProgram(this->Program, line))
-      cout << "no such line" << endl;
+      cout << "no such line" << endl; 
     else
     {
-      if (this->Prev != nullptr) 
-      {
-        if (this->Prev->stmt_type == STMT_ASSIGNMENT)
-          this->Prev->types.assignment->next_stmt = nullptr;  
-        else if (this->Prev->stmt_type == STMT_FUNCTION_CALL) 
-          this->Prev->types.function_call->next_stmt = nullptr;  
-        else if (this->Prev->stmt_type == STMT_WHILE_LOOP) 
-          this->Prev->types.while_loop->next_stmt = nullptr;  
-        else if (this->Prev->stmt_type == STMT_PASS)
-          this->Prev->types.pass->next_stmt = nullptr;  
-        else
-        {            
-          cout << "Unknown statement type. Cannot set breakpoint." << endl;
-          return;
-        }
-
-        this->Breakpoint = line;  // Save the line number where the breakpoint is set
-        BreakpointSet = true; 
-      } 
-      else 
-      { // TODO: Implement edge case when breakpoint is 1
-        cout << "Cannot set a breakpoint at the start of the program" << endl;
-      }
+      this->Breakpoints.push_back(line); 
+      sort(this->Breakpoints.begin(), this->Breakpoints.end()); 
     }
   }
 }
+
 
 //
 // removeBreakpoint()
@@ -254,14 +270,18 @@ void Debugger::removeBreakpoint()
   int line = -1; 
   cin >> line; 
 
-  if (line == this->Breakpoint)
+  auto it = find(this->Breakpoints.begin(), this->Breakpoints.end(), line);
+
+  if (it != this->Breakpoints.end())
   {
-    this->BreakpointSet = false;
+    this->Breakpoints.erase(it); 
     repairGraph();
     cout << "breakpoint removed" << endl;
   }
   else
+  {
     cout << "no such breakpoint" << endl; 
+  }
 }
 
 //
@@ -269,7 +289,7 @@ void Debugger::removeBreakpoint()
 //
 void Debugger::clearBreakpoints()
 {
-  this->BreakpointSet = false;
+  this->Breakpoints.clear();
   repairGraph();
   cout << "breakpoints cleared" << endl;
 
@@ -294,10 +314,14 @@ void Debugger::clearBreakpoints()
 //
 void Debugger::listBreakpoints()
 {
-  if (this->BreakpointSet == false)
+  if (this->Breakpoints.empty())
     cout << "no breakpoints" << endl;
   else
-    cout << "breakpoints on lines: " << this->Breakpoint << endl;
+  {
+    cout << "breakpoints on lines: ";
+    for (int BP: this->Breakpoints)
+      cout << BP << " ";
+  }
 }
 
 //
@@ -311,7 +335,7 @@ void Debugger::where()
     cout << "completed execution" << endl;
   else
   { // State == "running"
-    cout << "line " << this->Breakpoint << endl; 
+    cout << "line " << this->Cur << endl;  //TODO: not sure if this->Cur will actually give the correct next
   }
   //TODO: How to implement: programgraph_print(this->Cur);  
 }
@@ -370,6 +394,10 @@ void Debugger::run()
     else if (cmd == "r")
       runProgram();
 
+    else if (cmd == "s")
+      runProgram(); //"s" is a special case of "r" in that 
+      // it breaks out of the loop after the first iteration 
+
     else if (cmd == "lb")
       listBreakpoints();
 
@@ -379,6 +407,6 @@ void Debugger::run()
     else
       cout << "unkown command" << endl; 
   }
-  if (this->BreakpointSet)
+  if (!this->Breakpoints.empty())
     repairGraph();
 }
