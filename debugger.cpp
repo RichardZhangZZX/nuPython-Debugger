@@ -19,7 +19,8 @@ using namespace std;
 //
 Debugger::Debugger(struct STMT* program)
   : Program(program), State("Loaded"), Memory(ram_init()), 
-  Prev(nullptr), Cur(nullptr), TemptCur(nullptr), ClearRun(false), Current(program)
+  Prev(nullptr), Cur(nullptr), TemptCur(nullptr), ClearRun(false), Current(program),
+  Already_at_break(false)
 {}
 
 
@@ -115,20 +116,33 @@ void Debugger::step()
 
 //
 // runProgram()
-// Function for running the program and step to the next statment 
+// Function for running the program, specifically for "r" command 
 //
 void Debugger::runProgram()
 {
-  if (this->State == "Completed")
+  while (true)
   {
-    cout << "program has completed" << endl;
-    return;
+    // Just hit breakpoint
+    if (Current != nullptr && find(Breakpoints.begin(), Breakpoints.end(), Current->line) != Breakpoints.end() && Already_at_break == false)
+    {
+      cout << "hit breakpoint on line " << Current->line << endl;
+      Already_at_break = true; 
+      printNext();
+      break;
+    }
+    else
+    {
+      if (this->State == "Completed")
+      {
+        cout << "program has completed" << endl;
+        break;
+      }
+      else if (this->State == "Loaded")
+        this->State = "Running";
+      step();
+      Already_at_break = false; 
+    }
   }
-  else if (this->State == "Loaded")
-    this->State = "Running";
-  else // State is "running"
-  {}
-  step();
 }
 
 // 
@@ -311,6 +325,53 @@ void Debugger::listBreakpoints()
 }
 
 //
+// printNext()
+//
+void Debugger::printNext()
+{
+  struct STMT* next; 
+  // Set the temporary next pointer for repairing the graph later
+  // Simultaneously temporarily break the graph, treat Current here like Prev
+  if (Current->stmt_type == STMT_ASSIGNMENT)
+  {
+    next = Current->types.assignment->next_stmt;
+    Current->types.assignment->next_stmt = nullptr;
+  }
+  else if (Current->stmt_type == STMT_FUNCTION_CALL)
+  {
+    next = Current->types.function_call->next_stmt;
+    Current->types.function_call->next_stmt = nullptr;
+  }
+  else if (Current->stmt_type == STMT_WHILE_LOOP)
+  {
+    next = Current->types.while_loop->next_stmt;
+    Current->types.while_loop->next_stmt = nullptr;
+  }
+  else if (Current->stmt_type == STMT_PASS)
+  {
+    next = Current->types.pass->next_stmt;
+    Current->types.pass->next_stmt = nullptr;
+  }
+  else
+    cout << "Unknown statement type for Current" << endl;
+
+  programgraph_print(Current);
+
+  // Repair the program graph
+  if (Current->stmt_type == STMT_ASSIGNMENT)
+    Current->types.assignment->next_stmt = next; 
+  else if (Current->stmt_type == STMT_FUNCTION_CALL) 
+    Current->types.function_call->next_stmt = next;  
+  else if (Current->stmt_type == STMT_WHILE_LOOP) 
+    Current->types.while_loop->next_stmt = next;  
+  else if (Current->stmt_type == STMT_PASS)
+    Current->types.pass->next_stmt = Current;   
+  return;
+}
+
+
+
+//
 // where()
 //
 void Debugger::where()
@@ -319,46 +380,8 @@ void Debugger::where()
     cout << "completed execution" << endl; 
   else
   {
-    struct STMT* next; 
     cout << "line " << Current->line << endl;
-
-    // Set the temporary next pointer for repairing the graph later
-    // Simultaneously temporarily break the graph, treat Current here like Prev
-    if (Current->stmt_type == STMT_ASSIGNMENT)
-    {
-      next = Current->types.assignment->next_stmt;
-      Current->types.assignment->next_stmt = nullptr;
-    }
-    else if (Current->stmt_type == STMT_FUNCTION_CALL)
-    {
-      next = Current->types.function_call->next_stmt;
-      Current->types.function_call->next_stmt = nullptr;
-    }
-    else if (Current->stmt_type == STMT_WHILE_LOOP)
-    {
-      next = Current->types.while_loop->next_stmt;
-      Current->types.while_loop->next_stmt = nullptr;
-    }
-    else if (Current->stmt_type == STMT_PASS)
-    {
-      next = Current->types.pass->next_stmt;
-      Current->types.pass->next_stmt = nullptr;
-    }
-    else
-      cout << "Unkown statement type for Current" << endl;
-
-    programgraph_print(Current);
-
-    // Repair the program graph
-    if (Current->stmt_type == STMT_ASSIGNMENT)
-      Current->types.assignment->next_stmt = next; 
-    else if (Current->stmt_type == STMT_FUNCTION_CALL) 
-      Current->types.function_call->next_stmt = next;  
-    else if (Current->stmt_type == STMT_WHILE_LOOP) 
-      Current->types.while_loop->next_stmt = next;  
-    else if (Current->stmt_type == STMT_PASS)
-      Current->types.pass->next_stmt = Current;   
-    return;
+    printNext();
   }
 }
 
@@ -417,8 +440,16 @@ void Debugger::run()
       runProgram();
 
     else if (cmd == "s")
-      runProgram(); //"s" is a special case of "r" in that 
-      // it breaks out of the loop after the first iteration 
+    {
+      if (this->State == "Completed")
+      {
+        cout << "program has completed" << endl;
+        continue; 
+      }
+      else if (this->State == "Loaded")
+        this->State = "Running";
+      step();
+    }
 
     else if (cmd == "lb")
       listBreakpoints();
@@ -427,7 +458,7 @@ void Debugger::run()
       where();
 
     else
-      cout << "unkown command" << endl; 
+      cout << "unknown command" << endl; 
   }
   if (!this->Breakpoints.empty())
     repairGraph();

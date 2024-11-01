@@ -31,6 +31,7 @@ private:
   struct STMT* TemptCur;  
   bool ClearRun; 
   struct STMT* Current;
+  bool Already_at_break; 
 
 public:
   // 
@@ -77,7 +78,6 @@ public:
   //
   void repairGraph();
 
-
   //
   // setBreakpoint()
   //
@@ -97,6 +97,11 @@ public:
   // listBreakpoints()
   //
   void listBreakpoints(); 
+
+  //
+  // printNext()
+  //
+  void printNext();
 
   //
   // where()
