@@ -1,4 +1,4 @@
-th/*debugger.h*/
+/*debugger.h*/
 
 //
 // Debugger for nuPython
@@ -29,7 +29,8 @@ private:
   struct STMT* Prev; 
   struct STMT* Cur;
   struct STMT* TemptCur;  
-  bool ClearRun;
+  bool ClearRun; 
+  struct STMT* Current;
 
 public:
   // 
@@ -47,6 +48,11 @@ public:
   // Show the current state of the debugger
   //
   void showState();
+
+  //
+  // step()
+  //
+  void step();
 
   //
   // runProgram()
