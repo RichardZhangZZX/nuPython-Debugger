@@ -27,9 +27,6 @@ private:
   struct RAM* Memory; 
   vector<int> Breakpoints;
   struct STMT* Prev; 
-  struct STMT* Cur;
-  struct STMT* TemptCur;  
-  bool ClearRun; 
   struct STMT* Current;
   bool Already_at_break; 
 
@@ -59,7 +56,7 @@ public:
   // runProgram()
   // Function for running the program
   // 
-  void runProgram();
+  void runProgram(string command);
 
   // 
   // p_Varname

@@ -19,8 +19,7 @@ using namespace std;
 //
 Debugger::Debugger(struct STMT* program)
   : Program(program), State("Loaded"), Memory(ram_init()), 
-  Prev(nullptr), Cur(nullptr), TemptCur(nullptr), ClearRun(false), Current(program),
-  Already_at_break(false)
+  Prev(nullptr), Current(program), Already_at_break(false)
 {}
 
 
@@ -118,14 +117,14 @@ void Debugger::step()
 // runProgram()
 // Function for running the program, specifically for "r" command 
 //
-void Debugger::runProgram()
+void Debugger::runProgram(string command)
 {
   while (true)
   {
     // Just hit breakpoint
     if (Current != nullptr && find(Breakpoints.begin(), Breakpoints.end(), Current->line) != Breakpoints.end() && Already_at_break == false)
     {
-      cout << "hit breakpoint on line " << Current->line << endl;
+      cout << "hit breakpoint at line " << Current->line << endl;
       Already_at_break = true; 
       printNext();
       break;
@@ -134,7 +133,7 @@ void Debugger::runProgram()
     {
       if (this->State == "Completed")
       {
-        cout << "program has completed" << endl;
+        // cout << "program has completed" << endl;
         break;
       }
       else if (this->State == "Loaded")
@@ -142,6 +141,10 @@ void Debugger::runProgram()
       step();
       Already_at_break = false; 
     }
+
+    // If the command is "s", break the loop so the program only run once
+    if (command == "s")
+      break; 
   }
 }
 
@@ -226,9 +229,9 @@ void Debugger::repairGraph()
       Prev->types.assignment->next_stmt = Current; 
     else if (Prev->stmt_type == STMT_FUNCTION_CALL) 
       Prev->types.function_call->next_stmt = Current;  
-    else if (this->Prev->stmt_type == STMT_WHILE_LOOP) 
-      this->Prev->types.while_loop->next_stmt = Current;  
-    else if (this->Prev->stmt_type == STMT_PASS)
+    else if (Prev->stmt_type == STMT_WHILE_LOOP) 
+      Prev->types.while_loop->next_stmt = Current;  
+    else if (Prev->stmt_type == STMT_PASS)
       Prev->types.pass->next_stmt = Current;   
     return;
   }
@@ -257,6 +260,7 @@ void Debugger::setBreakpoint()
     {
       this->Breakpoints.push_back(line); 
       sort(this->Breakpoints.begin(), this->Breakpoints.end()); 
+      cout << "breakpoint set" << endl;
     }
   }
 }
@@ -292,20 +296,6 @@ void Debugger::clearBreakpoints()
   this->Breakpoints.clear();
   repairGraph();
   cout << "breakpoints cleared" << endl;
-
-  // Special Case: Clear Breakpoint in the middle of the execution
-  if (this->State == "Running") 
-  {
-    if (this->ClearRun == true) 
-    // ClearRun == true means break mid-execution, but already clear breakpoint once, 
-    // but haven't ran again. So the program will still run from the current line at break. 
-      {}
-    else
-    {
-      this->ClearRun = true;
-      this->TemptCur = this->Cur;
-    }
-  }
 }
 
 
@@ -365,7 +355,7 @@ void Debugger::printNext()
   else if (Current->stmt_type == STMT_WHILE_LOOP) 
     Current->types.while_loop->next_stmt = next;  
   else if (Current->stmt_type == STMT_PASS)
-    Current->types.pass->next_stmt = Current;   
+    Current->types.pass->next_stmt = next;   
   return;
 }
 
@@ -437,18 +427,17 @@ void Debugger::run()
       clearBreakpoints();
 
     else if (cmd == "r")
-      runProgram();
+    {
+      if (State == "Completed")
+        cout << "program has completed" << endl;
+      runProgram("r");
+    }
 
     else if (cmd == "s")
     {
-      if (this->State == "Completed")
-      {
+      if (State == "Completed")
         cout << "program has completed" << endl;
-        continue; 
-      }
-      else if (this->State == "Loaded")
-        this->State = "Running";
-      step();
+      runProgram("s");
     }
 
     else if (cmd == "lb")
